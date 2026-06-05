@@ -42,14 +42,14 @@ abstract class Usuario implements Autenticable {
 }
 
 // ==========================================
-// 3. CLASE ESPECIALIZADA: DOCTOR
+// 3. CLASES ESPECIALIZADAS (DOCTOR Y PACIENTE)
 // ==========================================
 class Doctor extends Usuario {
     private String javaEspecialidad; 
 
-    public Doctor(int id, String nombre, String correo, String contrasena, String especialidad) {
+    public Doctor(int id, String nombre, String correo, String contrasena, String specialty) {
         super(id, nombre, correo, contrasena, "Doctor");
-        this.javaEspecialidad = especialidad; 
+        this.javaEspecialidad = specialty; 
     }
 
     @Override
@@ -57,6 +57,23 @@ class Doctor extends Usuario {
         System.out.println("Doctor ID: " + this.id);
         System.out.println("Nombre: " + this.nombre);
         System.out.println("Especialidad: " + this.javaEspecialidad);
+        System.out.println("Correo: " + this.correo);
+    }
+}
+
+class Paciente extends Usuario {
+    private String historialClinico;
+
+    public Paciente(int id, String nombre, String correo, String contrasena, String historialClinico) {
+        super(id, nombre, correo, contrasena, "Paciente");
+        this.historialClinico = historialClinico;
+    }
+
+    @Override
+    public void mostrarDetalles() {
+        System.out.println("Paciente ID: " + this.id);
+        System.out.println("Nombre: " + this.nombre);
+        System.out.println("Historial Clínico: " + this.historialClinico);
         System.out.println("Correo: " + this.correo);
     }
 }
@@ -83,6 +100,15 @@ class GestorCitas {
             }
         }
     }
+
+    public void listarPacientes() {
+        for (Usuario u : usuarios) {
+            if (u instanceof Paciente) {
+                u.mostrarDetalles();
+                System.out.println("--------------------");
+            }
+        }
+    }
 }
 
 // ==========================================
@@ -93,11 +119,20 @@ public class SistemadeCitasMedicas {
     public static void main(String[] args) {
         GestorCitas gestor = new GestorCitas();
         
-        // Ejecución de prueba para validar el Alta de Doctor
+        // 1. Prueba de Alta de Doctor
         Doctor nuevoDoc = new Doctor(1, "Dr. Jesus Cazares", "cazares@citas.com", "secure123", "Cardiologia");
         gestor.registrarUsuario(nuevoDoc);
         
-        System.out.println("=== Probando Alta de Doctor ===");
+        // 2. Prueba de Alta de Paciente
+        Paciente nuevoPac = new Paciente(2, "Victor Lopez", "victor@paciente.com", "pass456", "Ninguna alergia registrada");
+        gestor.registrarUsuario(nuevoPac);
+        
+        // Mostrar Resultados en Consola
+        System.out.println("=== PROBANDO SISTEMA DE CITAS MÉMICAS ===");
+        System.out.println("\n--- Lista de Doctores ---");
         gestor.listarDoctores();
+        
+        System.out.println("\n--- Lista de Pacientes ---");
+        gestor.listarPacientes();
     }
 }
