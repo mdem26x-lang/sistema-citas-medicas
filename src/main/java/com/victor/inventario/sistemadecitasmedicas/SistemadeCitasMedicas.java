@@ -40,10 +40,12 @@ abstract class Usuario implements Autenticable {
     }
 
     public abstract void mostrarDetalles();
+    public int getId() { return id; }
+    public String getNombre() { return nombre; }
 }
 
 // ==========================================
-// 3. CLASES ESPECIALIZADAS
+// 3. CLASES ESPECIALIZADAS (USUARIOS)
 // ==========================================
 class Doctor extends Usuario {
     private String javaEspecialidad; 
@@ -55,10 +57,7 @@ class Doctor extends Usuario {
 
     @Override
     public void mostrarDetalles() {
-        System.out.println("Doctor ID: " + this.id);
-        System.out.println("Nombre: " + this.nombre);
-        System.out.println("Especialidad: " + this.javaEspecialidad);
-        System.out.println("Correo: " + this.correo);
+        System.out.println("Doctor ID: " + this.id + " | Nombre: " + this.nombre + " | Especialidad: " + this.javaEspecialidad);
     }
 }
 
@@ -72,54 +71,100 @@ class Paciente extends Usuario {
 
     @Override
     public void mostrarDetalles() {
-        System.out.println("Paciente ID: " + this.id);
-        System.out.println("Nombre: " + this.nombre);
-        System.out.println("Historial Clínico: " + this.historialClinico);
-        System.out.println("Correo: " + this.correo);
+        System.out.println("Paciente ID: " + this.id + " | Nombre: " + this.nombre + " | Historial: " + this.historialClinico);
     }
 }
 
 // ==========================================
-// 4. GESTOR DE CITAS
+// 4. CLASE COMPONENTE: CITA MÉDICA
+// ==========================================
+class Cita {
+    private int idCita;
+    private Doctor doctor;
+    private Paciente paciente;
+    private String fecha;
+    private String hora;
+
+    public Cita(int idCita, Doctor doctor, Paciente paciente, String fecha, String hora) {
+        this.idCita = idCita;
+        this.doctor = doctor;
+        this.paciente = paciente;
+        this.fecha = fecha;
+        this.hora = hora;
+    }
+
+    public void mostrarCita() {
+        System.out.println("Cita ID: " + idCita + " | Fecha: " + fecha + " | Hora: " + hora);
+        System.out.println("   -> Doctor: " + doctor.getNombre());
+        System.out.println("   -> Paciente: " + paciente.getNombre());
+        System.out.println("----------------------------------------");
+    }
+}
+
+// ==========================================
+// 5. GESTOR DE CITAS (LÓGICA DE NEGOCIO)
 // ==========================================
 class GestorCitas {
     private List<Usuario> usuarios;
+    private List<Cita> citas;
 
     public GestorCitas() {
         this.usuarios = new ArrayList<>();
+        this.citas = new ArrayList<>();
     }
 
     public void registrarUsuario(Usuario usuario) {
         this.usuarios.add(usuario);
     }
+
+    public void agendarCita(Cita cita) {
+        this.citas.add(cita);
+    }
     
-    public void listarDoctores() {
-        boolean hayDocs = false;
+    // Buscar usuarios específicos por ID para enlazarlos en la cita
+    public Doctor buscarDoctor(int id) {
         for (Usuario u : usuarios) {
-            if (u instanceof Doctor) {
-                u.mostrarDetalles();
-                System.out.println("--------------------");
-                hayDocs = true;
+            if (u instanceof Doctor && u.getId() == id) {
+                return (Doctor) u;
             }
         }
-        if (!hayDocs) System.out.println("No hay doctores registrados.");
+        return null;
+    }
+
+    public Paciente buscarPaciente(int id) {
+        for (Usuario u : usuarios) {
+            if (u instanceof Paciente && u.getId() == id) {
+                return (Paciente) u;
+            }
+        }
+        return null;
+    }
+    
+    public void listarDoctores() {
+        for (Usuario u : usuarios) {
+            if (u instanceof Doctor) u.mostrarDetalles();
+        }
     }
 
     public void listarPacientes() {
-        boolean hayPacs = false;
         for (Usuario u : usuarios) {
-            if (u instanceof Paciente) {
-                u.mostrarDetalles();
-                System.out.println("--------------------");
-                hayPacs = true;
-            }
+            if (u instanceof Paciente) u.mostrarDetalles();
         }
-        if (!hayPacs) System.out.println("No hay pacientes registrados.");
+    }
+
+    public void listarCitas() {
+        if (citas.isEmpty()) {
+            System.out.println("No hay citas agendadas en el sistema.");
+            return;
+        }
+        for (Cita c : citas) {
+            c.mostrarCita();
+        }
     }
 }
 
 // ==========================================
-// 5. CLASE PRINCIPAL CON MENÚ INTERACTIVO
+// 6. CLASE PRINCIPAL CON MENÚ COMPLETO
 // ==========================================
 public class SistemadeCitasMedicas {
 
@@ -128,53 +173,45 @@ public class SistemadeCitasMedicas {
         Scanner scanner = new Scanner(System.in);
         int opcion;
 
+        // Datos de prueba iniciales para facilitar tus pruebas
+        gestor.registrarUsuario(new Doctor(101, "Dr. Jesus Cazares", "cazares@citas.com", "123", "Cardiologia"));
+        gestor.registrarUsuario(new Paciente(201, "Miguel Lopez", "miguel@mail.com", "456", "Ninguna"));
+
         do {
-            System.out.println("\n=== SISTERMA DE CITAS MÉDICAS ===");
+            System.out.println("\n=== SISTEMA DE CITAS MÉDICAS ===");
             System.out.println("1. Registrar Doctor");
             System.out.println("2. Registrar Paciente");
             System.out.println("3. Listar Doctores");
             System.out.println("4. Listar Pacientes");
-            System.out.println("5. Salir");
+            System.out.println("5. Agendar Cita Médica");
+            System.out.println("6. Listar Citas Agendadas");
+            System.out.println("7. Salir");
             System.out.print("Seleccione una opción: ");
             
             opcion = scanner.nextInt();
-            scanner.nextLine(); // Limpiar el buffer del scanner
+            scanner.nextLine(); 
 
             switch (opcion) {
                 case 1:
                     System.out.println("\n--- Registro de Doctor ---");
-                    System.out.print("ID: ");
-                    int idDoc = scanner.nextInt();
-                    scanner.nextLine();
-                    System.out.print("Nombre: ");
-                    String nomDoc = scanner.nextLine();
-                    System.out.print("Correo: ");
-                    String corrDoc = scanner.nextLine();
-                    System.out.print("Contraseña: ");
-                    String passDoc = scanner.nextLine();
-                    System.out.print("Especialidad: ");
-                    String espDoc = scanner.nextLine();
-
+                    System.out.print("ID: "); int idDoc = scanner.nextInt(); scanner.nextLine();
+                    System.out.print("Nombre: "); String nomDoc = scanner.nextLine();
+                    System.out.print("Correo: "); String corrDoc = scanner.nextLine();
+                    System.out.print("Contraseña: "); String passDoc = scanner.nextLine();
+                    System.out.print("Especialidad: "); String espDoc = scanner.nextLine();
                     gestor.registrarUsuario(new Doctor(idDoc, nomDoc, corrDoc, passDoc, espDoc));
-                    System.out.println("¡Doctor registrado con éxito!");
+                    System.out.println("¡Doctor registrado!");
                     break;
 
                 case 2:
                     System.out.println("\n--- Registro de Paciente ---");
-                    System.out.print("ID: ");
-                    int idPac = scanner.nextInt();
-                    scanner.nextLine();
-                    System.out.print("Nombre: ");
-                    String nomPac = scanner.nextLine();
-                    System.out.print("Correo: ");
-                    String corrPac = scanner.nextLine();
-                    System.out.print("Contraseña: ");
-                    String passPac = scanner.nextLine();
-                    System.out.print("Historial Clínico / Alergias: ");
-                    String histPac = scanner.nextLine();
-
+                    System.out.print("ID: "); int idPac = scanner.nextInt(); scanner.nextLine();
+                    System.out.print("Nombre: "); String nomPac = scanner.nextLine();
+                    System.out.print("Correo: "); String corrPac = scanner.nextLine();
+                    System.out.print("Contraseña: "); String passPac = scanner.nextLine();
+                    System.out.print("Historial Clínico: "); String histPac = scanner.nextLine();
                     gestor.registrarUsuario(new Paciente(idPac, nomPac, corrPac, passPac, histPac));
-                    System.out.println("¡Paciente registrado con éxito!");
+                    System.out.println("¡Paciente registrado!");
                     break;
 
                 case 3:
@@ -188,13 +225,38 @@ public class SistemadeCitasMedicas {
                     break;
 
                 case 5:
-                    System.out.println("Saliendo del sistema... ¡Hasta luego!");
+                    System.out.println("\n--- Agendar Nueva Cita ---");
+                    System.out.print("ID de la Cita: "); int idCita = scanner.nextInt();
+                    System.out.print("ID del Doctor: "); int docId = scanner.nextInt();
+                    System.out.print("ID del Paciente: "); int pacId = scanner.nextInt();
+                    scanner.nextLine(); // Limpiar buffer
+                    System.out.print("Fecha (DD/MM/AAAA): "); String fecha = scanner.nextLine();
+                    System.out.print("Hora (HH:MM): "); String hora = scanner.nextLine();
+
+                    Doctor docAsignado = gestor.buscarDoctor(docId);
+                    Paciente pacAsignado = gestor.buscarPaciente(pacId);
+
+                    if (docAsignado != null && pacAsignado != null) {
+                        gestor.agendarCita(new Cita(idCita, docAsignado, pacAsignado, fecha, hora));
+                        System.out.println("¡Cita agendada con éxito!");
+                    } else {
+                        System.out.println("Error: El ID del Doctor o del Paciente no existen.");
+                    }
+                    break;
+
+                case 6:
+                    System.out.println("\n--- Citas Médicas Programadas ---");
+                    gestor.listarCitas();
+                    break;
+
+                case 7:
+                    System.out.println("Saliendo del sistema...");
                     break;
 
                 default:
-                    System.out.println("Opción no válida. Intente de nuevo.");
+                    System.out.println("Opción inválida.");
             }
-        } while (opcion != 5);
+        } while (opcion != 7);
 
         scanner.close();
     }
