@@ -2,6 +2,7 @@ package com.victor.inventario.sistemadecitasmedicas;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 // ==========================================
 // 1. CONTRATOS / INTERFACES
@@ -42,7 +43,7 @@ abstract class Usuario implements Autenticable {
 }
 
 // ==========================================
-// 3. CLASES ESPECIALIZADAS (DOCTOR Y PACIENTE)
+// 3. CLASES ESPECIALIZADAS
 // ==========================================
 class Doctor extends Usuario {
     private String javaEspecialidad; 
@@ -79,7 +80,7 @@ class Paciente extends Usuario {
 }
 
 // ==========================================
-// 4. GESTOR DE CITAS (LÓGICA DE NEGOCIO)
+// 4. GESTOR DE CITAS
 // ==========================================
 class GestorCitas {
     private List<Usuario> usuarios;
@@ -93,46 +94,108 @@ class GestorCitas {
     }
     
     public void listarDoctores() {
+        boolean hayDocs = false;
         for (Usuario u : usuarios) {
             if (u instanceof Doctor) {
                 u.mostrarDetalles();
                 System.out.println("--------------------");
+                hayDocs = true;
             }
         }
+        if (!hayDocs) System.out.println("No hay doctores registrados.");
     }
 
     public void listarPacientes() {
+        boolean hayPacs = false;
         for (Usuario u : usuarios) {
             if (u instanceof Paciente) {
                 u.mostrarDetalles();
                 System.out.println("--------------------");
+                hayPacs = true;
             }
         }
+        if (!hayPacs) System.out.println("No hay pacientes registrados.");
     }
 }
 
 // ==========================================
-// 5. CLASE PRINCIPAL (EJECUCIÓN)
+// 5. CLASE PRINCIPAL CON MENÚ INTERACTIVO
 // ==========================================
 public class SistemadeCitasMedicas {
 
     public static void main(String[] args) {
         GestorCitas gestor = new GestorCitas();
-        
-        // 1. Prueba de Alta de Doctor
-        Doctor nuevoDoc = new Doctor(1, "Dr. Jesus Cazares", "cazares@citas.com", "secure123", "Cardiologia");
-        gestor.registrarUsuario(nuevoDoc);
-        
-        // 2. Prueba de Alta de Paciente
-        Paciente nuevoPac = new Paciente(2, "Victor Lopez", "victor@paciente.com", "pass456", "Ninguna alergia registrada");
-        gestor.registrarUsuario(nuevoPac);
-        
-        // Mostrar Resultados en Consola
-        System.out.println("=== PROBANDO SISTEMA DE CITAS MÉMICAS ===");
-        System.out.println("\n--- Lista de Doctores ---");
-        gestor.listarDoctores();
-        
-        System.out.println("\n--- Lista de Pacientes ---");
-        gestor.listarPacientes();
+        Scanner scanner = new Scanner(System.in);
+        int opcion;
+
+        do {
+            System.out.println("\n=== SISTERMA DE CITAS MÉDICAS ===");
+            System.out.println("1. Registrar Doctor");
+            System.out.println("2. Registrar Paciente");
+            System.out.println("3. Listar Doctores");
+            System.out.println("4. Listar Pacientes");
+            System.out.println("5. Salir");
+            System.out.print("Seleccione una opción: ");
+            
+            opcion = scanner.nextInt();
+            scanner.nextLine(); // Limpiar el buffer del scanner
+
+            switch (opcion) {
+                case 1:
+                    System.out.println("\n--- Registro de Doctor ---");
+                    System.out.print("ID: ");
+                    int idDoc = scanner.nextInt();
+                    scanner.nextLine();
+                    System.out.print("Nombre: ");
+                    String nomDoc = scanner.nextLine();
+                    System.out.print("Correo: ");
+                    String corrDoc = scanner.nextLine();
+                    System.out.print("Contraseña: ");
+                    String passDoc = scanner.nextLine();
+                    System.out.print("Especialidad: ");
+                    String espDoc = scanner.nextLine();
+
+                    gestor.registrarUsuario(new Doctor(idDoc, nomDoc, corrDoc, passDoc, espDoc));
+                    System.out.println("¡Doctor registrado con éxito!");
+                    break;
+
+                case 2:
+                    System.out.println("\n--- Registro de Paciente ---");
+                    System.out.print("ID: ");
+                    int idPac = scanner.nextInt();
+                    scanner.nextLine();
+                    System.out.print("Nombre: ");
+                    String nomPac = scanner.nextLine();
+                    System.out.print("Correo: ");
+                    String corrPac = scanner.nextLine();
+                    System.out.print("Contraseña: ");
+                    String passPac = scanner.nextLine();
+                    System.out.print("Historial Clínico / Alergias: ");
+                    String histPac = scanner.nextLine();
+
+                    gestor.registrarUsuario(new Paciente(idPac, nomPac, corrPac, passPac, histPac));
+                    System.out.println("¡Paciente registrado con éxito!");
+                    break;
+
+                case 3:
+                    System.out.println("\n--- Lista de Doctores ---");
+                    gestor.listarDoctores();
+                    break;
+
+                case 4:
+                    System.out.println("\n--- Lista de Pacientes ---");
+                    gestor.listarPacientes();
+                    break;
+
+                case 5:
+                    System.out.println("Saliendo del sistema... ¡Hasta luego!");
+                    break;
+
+                default:
+                    System.out.println("Opción no válida. Intente de nuevo.");
+            }
+        } while (opcion != 5);
+
+        scanner.close();
     }
 }
