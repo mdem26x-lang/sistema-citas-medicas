@@ -1,5 +1,6 @@
 package com.victor.inventario.sistemadecitasmedicas;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -42,6 +43,9 @@ abstract class Usuario implements Autenticable {
     public abstract void mostrarDetalles();
     public int getId() { return id; }
     public String getNombre() { return nombre; }
+    public String getCorreo() { return correo; }
+    public String getContrasena() { return contrasena; }
+    public String getRol() { return rol; }
 }
 
 // ==========================================
@@ -54,6 +58,8 @@ class Doctor extends Usuario {
         super(id, nombre, correo, contrasena, "Doctor");
         this.javaEspecialidad = specialty; 
     }
+
+    public String getEspecialidad() { return javaEspecialidad; }
 
     @Override
     public void mostrarDetalles() {
@@ -68,6 +74,8 @@ class Paciente extends Usuario {
         super(id, nombre, correo, contrasena, "Paciente");
         this.historialClinico = historialClinico;
     }
+
+    public String getHistorialClinico() { return historialClinico; }
 
     @Override
     public void mostrarDetalles() {
@@ -93,6 +101,12 @@ class Cita {
         this.hora = hora;
     }
 
+    public int getIdCita() { return idCita; }
+    public Doctor getDoctor() { return doctor; }
+    public Paciente getPaciente() { return paciente; }
+    public String getFecha() { return fecha; }
+    public String getHora() { return hora; }
+
     public void mostrarCita() {
         System.out.println("Cita ID: " + idCita + " | Fecha: " + fecha + " | Hora: " + hora);
         System.out.println("   -> Doctor: " + doctor.getNombre());
@@ -102,9 +116,9 @@ class Cita {
 }
 
 // ==========================================
-// 5. GESTOR DE CITAS (LÓGICA DE NEGOCIO)
+// 5. GESTOR DE CITAS (CON PERSISTENCIA DE ARCHIVOS)
 // ==========================================
-class GestorCitas {
+class GestorCitas implements Persistente {
     private List<Usuario> usuarios;
     private List<Cita> citas;
 
@@ -121,21 +135,16 @@ class GestorCitas {
         this.citas.add(cita);
     }
     
-    // Buscar usuarios específicos por ID para enlazarlos en la cita
     public Doctor buscarDoctor(int id) {
         for (Usuario u : usuarios) {
-            if (u instanceof Doctor && u.getId() == id) {
-                return (Doctor) u;
-            }
+            if (u instanceof Doctor && u.getId() == id) return (Doctor) u;
         }
         return null;
     }
 
     public Paciente buscarPaciente(int id) {
         for (Usuario u : usuarios) {
-            if (u instanceof Paciente && u.getId() == id) {
-                return (Paciente) u;
-            }
+            if (u instanceof Paciente && u.getId() == id) return (Paciente) u;
         }
         return null;
     }
@@ -157,25 +166,81 @@ class GestorCitas {
             System.out.println("No hay citas agendadas en el sistema.");
             return;
         }
-        for (Cita c : citas) {
-            c.mostrarCita();
+        for (Cita c : citas) c.mostrarCita();
+    }
+
+    // INTERFAZ PERSISTENTE: GUARDAR DATOS EN TXT
+    @Override
+    public void guardarDatos(String rutaArchivo) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(rutaArchivo))) {
+            // Guardar Usuarios
+            for (Usuario u : usuarios) {
+                if (u instanceof Doctor) {
+                    Doctor d = (Doctor) u;
+                    writer.println("DOCTOR," + d.getId() + "," + d.getNombre() + "," + d.getCorreo() + "," + d.getContrasena() + "," + d.getEspecialidad());
+                } else if (u instanceof Paciente) {
+                    Paciente p = (Paciente) u;
+                    writer.println("PACIENTE," + p.getId() + "," + p.getNombre() + "," + p.getCorreo() + "," + p.getContrasena() + "," + p.getHistorialClinico());
+                }
+            }
+            // Guardar Citas
+            for (Cita c : citas) {
+                writer.println("CITA," + c.getIdCita() + "," + c.getDoctor().getId() + "," + c.getPaciente().getId() + "," + c.getFecha() + "," + c.getHora());
+            }
+            System.out.println("¡Datos guardados correctamente en " + rutaArchivo + "!");
+        } catch (IOException e) {
+            System.out.println("Error al guardar datos: " + e.getMessage());
+        }
+    }
+
+    // INTERFAZ PERSISTENTE: CARGAR DATOS DESDE TXT
+    @Override
+    public void cargarDatos(String rutaArchivo) {
+        File file = new File(rutaArchivo);
+        if (!file.exists()) {
+            System.out.println("Archivo de datos no encontrado. Iniciando sistema vacío.");
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                String[] datos = linea.split(",");
+                String tipo = datos[0];
+
+                if (tipo.equals("DOCTOR")) {
+                    registrarUsuario(new Doctor(Integer.parseInt(datos[1]), datos[2], datos[3], datos[4], datos[5]));
+                } else if (tipo.equals("PACIENTE")) {
+                    registrarUsuario(new Paciente(Integer.parseInt(datos[1]), datos[2], datos[3], datos[4], datos[5]));
+                } else if (tipo.equals("CITA")) {
+                    int idCita = Integer.parseInt(datos[1]);
+                    Doctor doc = buscarDoctor(Integer.parseInt(datos[2]));
+                    Paciente pac = buscarPaciente(Integer.parseInt(datos[3]));
+                    if (doc != null && pac != null) {
+                        agendarCita(new Cita(idCita, doc, pac, datos[4], datos[5]));
+                    }
+                }
+            }
+            System.out.println("¡Datos cargados exitosamente desde " + rutaArchivo + "!");
+        } catch (IOException | NumberFormatException e) {
+            System.out.println("Error al cargar datos: " + e.getMessage());
         }
     }
 }
 
 // ==========================================
-// 6. CLASE PRINCIPAL CON MENÚ COMPLETO
+// 6. CLASE PRINCIPAL DEL SISTEMA
 // ==========================================
 public class SistemadeCitasMedicas {
 
     public static void main(String[] args) {
         GestorCitas gestor = new GestorCitas();
         Scanner scanner = new Scanner(System.in);
+        String archivoDatos = "citas_medicas.txt";
         int opcion;
 
-        // Datos de prueba iniciales para facilitar tus pruebas
-        gestor.registrarUsuario(new Doctor(101, "Dr. Jesus Cazares", "cazares@citas.com", "123", "Cardiologia"));
-        gestor.registrarUsuario(new Paciente(201, "Miguel Lopez", "miguel@mail.com", "456", "Ninguna"));
+        // Cargar datos automáticamente al iniciar el programa
+        gestor.cargarDatos(archivoDatos);
 
         do {
             System.out.println("\n=== SISTEMA DE CITAS MÉDICAS ===");
@@ -185,7 +250,7 @@ public class SistemadeCitasMedicas {
             System.out.println("4. Listar Pacientes");
             System.out.println("5. Agendar Cita Médica");
             System.out.println("6. Listar Citas Agendadas");
-            System.out.println("7. Salir");
+            System.out.println("7. Guardar y Salir");
             System.out.print("Seleccione una opción: ");
             
             opcion = scanner.nextInt();
@@ -200,7 +265,7 @@ public class SistemadeCitasMedicas {
                     System.out.print("Contraseña: "); String passDoc = scanner.nextLine();
                     System.out.print("Especialidad: "); String espDoc = scanner.nextLine();
                     gestor.registrarUsuario(new Doctor(idDoc, nomDoc, corrDoc, passDoc, espDoc));
-                    System.out.println("¡Doctor registrado!");
+                    System.out.println("¡Doctor registrado localmente!");
                     break;
 
                 case 2:
@@ -211,7 +276,7 @@ public class SistemadeCitasMedicas {
                     System.out.print("Contraseña: "); String passPac = scanner.nextLine();
                     System.out.print("Historial Clínico: "); String histPac = scanner.nextLine();
                     gestor.registrarUsuario(new Paciente(idPac, nomPac, corrPac, passPac, histPac));
-                    System.out.println("¡Paciente registrado!");
+                    System.out.println("¡Paciente registrado localmente!");
                     break;
 
                 case 3:
@@ -229,7 +294,7 @@ public class SistemadeCitasMedicas {
                     System.out.print("ID de la Cita: "); int idCita = scanner.nextInt();
                     System.out.print("ID del Doctor: "); int docId = scanner.nextInt();
                     System.out.print("ID del Paciente: "); int pacId = scanner.nextInt();
-                    scanner.nextLine(); // Limpiar buffer
+                    scanner.nextLine(); 
                     System.out.print("Fecha (DD/MM/AAAA): "); String fecha = scanner.nextLine();
                     System.out.print("Hora (HH:MM): "); String hora = scanner.nextLine();
 
@@ -238,7 +303,7 @@ public class SistemadeCitasMedicas {
 
                     if (docAsignado != null && pacAsignado != null) {
                         gestor.agendarCita(new Cita(idCita, docAsignado, pacAsignado, fecha, hora));
-                        System.out.println("¡Cita agendada con éxito!");
+                        System.out.println("¡Cita agendada localmente!");
                     } else {
                         System.out.println("Error: El ID del Doctor o del Paciente no existen.");
                     }
@@ -250,7 +315,9 @@ public class SistemadeCitasMedicas {
                     break;
 
                 case 7:
-                    System.out.println("Saliendo del sistema...");
+                    System.out.println("\nGuardando datos en el archivo antes de salir...");
+                    gestor.guardarDatos(archivoDatos);
+                    System.out.println("Saliendo del sistema... ¡Proyecto terminado!");
                     break;
 
                 default:
